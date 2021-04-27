@@ -3,28 +3,10 @@ require_relative 'question'
 require_relative 'reply'
 require_relative 'question_follow'
 require_relative 'question_like'
+require_relative 'model_base'
 
-class User
+class User < ModelBase
   attr_accessor :id, :fname, :lname
-
-  def self.all
-    data = QuestionsDatabase.instance.execute('SELECT * FROM users')
-    data.map { |datum| User.new(datum) }
-  end
-
-  def self.find_by_id(id)
-    user = QuestionsDatabase.instance.execute(<<-SQL, id)
-      SELECT
-        *
-      FROM
-        users
-      WHERE
-        id = ?
-    SQL
-    return nil unless user.length > 0
-
-    User.new(user.first)
-  end
 
   def self.find_by_name(fname, lname)
     user = QuestionsDatabase.instance.execute(<<-SQL, fname, lname)
@@ -46,12 +28,8 @@ class User
     @lname = options['lname']
   end
 
-  def save
-    if self.id
-      update
-    else
-      create
-    end
+  def attrs 
+    { fname: fname, lname: lname}
   end
 
   def authored_questions
@@ -90,28 +68,56 @@ class User
 
     avg_vals.first['num likes'] / avg_vals.first['num questions']
   end
-
-  private
-  def create
-    raise "#{self} already in database" if self.id
-    QuestionsDatabase.instance.execute(<<-SQL, self.fname, self.lname)
-      INSERT INTO
-        users (fname, lname)
-      VALUES
-        (?, ?)
-    SQL
-    self.id = QuestionsDatabase.instance.last_insert_row_id
-  end
-
-  def update
-    raise "#{self} not in database" unless self.id
-    QuestionsDatabase.instance.execute(<<-SQL, self.fname, self.lname, self.id)
-      UPDATE
-        users
-      SET
-        fname = ?, lname = ?
-      WHERE
-        id = ?
-    SQL
-  end
 end
+
+# Previously implemented class methods below. No longer needed with Superclass implementations.
+
+#   def self.all
+#     data = QuestionsDatabase.instance.execute('SELECT * FROM users')
+#     data.map { |datum| User.new(datum) }
+#   end
+
+#   def self.find_by_id(id)
+#     user = QuestionsDatabase.instance.execute(<<-SQL, id)
+#       SELECT
+#         *
+#       FROM
+#         users
+#       WHERE
+#         id = ?
+#     SQL
+#     return nil unless user.length > 0
+
+#     User.new(user.first)
+#   end
+
+#   def save
+#     if self.id
+#       update
+#     else
+#       create
+#     end
+#   end
+
+#   def create
+#     raise "#{self} already in database" if self.id
+#     QuestionsDatabase.instance.execute(<<-SQL, self.fname, self.lname)
+#       INSERT INTO
+#         users (fname, lname)
+#       VALUES
+#         (?, ?)
+#     SQL
+#     self.id = QuestionsDatabase.instance.last_insert_row_id
+#   end
+
+#   def update
+#     raise "#{self} not in database" unless self.id
+#     QuestionsDatabase.instance.execute(<<-SQL, self.fname, self.lname, self.id)
+#       UPDATE
+#         users
+#       SET
+#         fname = ?, lname = ?
+#       WHERE
+#         id = ?
+#     SQL
+#   end
